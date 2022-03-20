@@ -1,5 +1,11 @@
 using MediatR;
+using MicroRabbit.Banking.Application.Interfaces;
+using MicroRabbit.Banking.Application.Services;
 using MicroRabbit.Banking.Data.Context;
+using MicroRabbit.Banking.Data.Repository;
+using MicroRabbit.Banking.Domain.Interfaces;
+using MicroRabbit.Domain.Core.Bus;
+using MicroRabbit.Infrastructure.Bus;
 using MicroRabbit.Infrastructure.IoC;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -34,6 +40,20 @@ namespace MicroRabbit.Banking.Api
             services.AddDbContext<BankingDbContext>(x => x.UseSqlServer(Configuration.GetConnectionString("Default")));
 
             services.RegisterServices();
+            
+            //Application Services Account MS
+            services.AddTransient<IAccountService, AccountService>();
+
+            //Repository Services Account MS
+            services.AddTransient<IAccountRepository, AccountRepository>();
+            services.AddTransient<BankingDbContext>();
+
+            //Domain Bus
+            services.AddSingleton<IEventBus, RabbitMQBus>(sp =>
+            {
+                var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+                return new RabbitMQBus(sp.GetService<IMediator>(), scopeFactory);
+            });
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
